@@ -1,3 +1,7 @@
 #!/bin/sh
-echo "▶ Lancement des tests avant le push..."
-npm test || { echo "✖ Tests en échec : push annulé."; exit 1; }
+set -eu
+echo "▶ Lancement de la suite TDD avec couverture..."
+npm run test:tdd || { echo "✖ Tests TDD en échec : push annulé."; exit 1; }
+echo "▶ Lancement des scénarios BDD dans Chrome..."
+npm run test:bdd || { echo "✖ Tests BDD en échec : push annulé."; exit 1; }
+echo "✓ TDD et BDD réussis : push autorisé."
