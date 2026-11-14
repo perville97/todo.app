@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tâches</title>
+  <style>
+    body{font-family:system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem}
+    ul{list-style:none;padding:0} li{display:flex;gap:.5rem;align-items:center;padding:.35rem 0}
+    li.active .select-project{font-weight:bold;text-decoration:underline}
+    .done .title{text-decoration:line-through;opacity:.6} form{display:flex;gap:.5rem;margin:.75rem 0}
+    input[type=text]{flex:1;padding:.4rem}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

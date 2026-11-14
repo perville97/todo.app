@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "▶ Lancement des tests avant le push..."
+npm test || { echo "✖ Tests en échec : push annulé."; exit 1; }
