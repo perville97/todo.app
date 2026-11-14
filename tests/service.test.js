@@ -95,7 +95,12 @@ describe('service – propriétés réflexives', () => {
       const mutantPercent = (tasks) => Math.round(tasks.filter((task) => !task.done).length / tasks.length * 100);
       const scaled = Array.from({ length: multiplier }, () => base).flat();
       expect(mutantPercent(scaled)).toBe(mutantPercent(base));
-      expect(mutantPercent(base)).not.toBe(originalSummary.percent);
+      if (mutantPercent(base) === originalSummary.percent) {
+        // Sur une répartition équilibrée, ce mutant est équivalent pour cette entrée.
+        expect(shape).toBe('oneDone');
+      } else {
+        expect(mutantPercent(base)).not.toBe(originalSummary.percent);
+      }
       return;
     }
     if (oracle === 'mutant-detectable') {

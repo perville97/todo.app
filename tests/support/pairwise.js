@@ -55,8 +55,9 @@ export function generatePairwise(factors) {
       row[name] = target[3];
       for (const priorName of names.slice(0, names.indexOf(name))) {
         if (row[priorName] === undefined) {
-          row[priorName] = entries.find(([factorName]) => factorName === priorName)[1]
-            .find((candidate) => uncovered.has(pairKey(priorName, candidate, name, target[3])));
+          const priorValues = entries.find(([factorName]) => factorName === priorName)[1];
+          row[priorName] = priorValues.find((candidate) =>
+            uncovered.has(pairKey(priorName, candidate, name, target[3]))) ?? priorValues[0];
         }
         uncovered.delete(pairKey(priorName, row[priorName], name, target[3]));
       }
