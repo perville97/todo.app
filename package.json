@@ -4,12 +4,22 @@
   "type": "module",
   "scripts": {
     "start": "npx serve .",
-    "test": "vitest run",
+    "test": "npm run test:tdd && npm run test:bdd",
+    "test:tdd": "vitest run --coverage",
+    "test:bdd": "cucumber-js --import tests/bdd/support/**/*.js --import tests/bdd/steps/**/*.js tests/bdd/features/**/*.feature --format progress --format html:reports/cucumber.html",
+    "test:bdd:mutation-check": "node tests/bdd/verify-negative-control.js",
+    "test:mutation": "stryker run",
     "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^13.3.0",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/typescript-checker": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
+    "@vitest/coverage-v8": "^5.1.0",
     "fake-indexeddb": "^6.0.0",
     "jsdom": "^25.0.0",
-    "vitest": "^2.1.0"
+    "playwright": "^1.65.1",
+    "vitest": "^5.1.0"
   }
 }

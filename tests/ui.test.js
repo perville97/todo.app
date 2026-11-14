@@ -1,101 +1,88 @@
 import 'fake-indexeddb/auto';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDB } from '../src/db.js';
+import { createTodoService } from '../src/service.js';
 import { initApp } from '../src/app.js';
 
-let root, db, n = 0;
-const $ = (s) => root.querySelector(s);
-const $$ = (s) => [...root.querySelectorAll(s)];
-const submit = (formSel, inputSel, value) => {
-  $(inputSel).value = value;
-  $(formSel).dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+let root; let service; let count = 0;
+const $ = (selector) => root.querySelector(selector);
+const $$ = (selector) => [...root.querySelectorAll(selector)];
+const wait = () => vi.waitFor(() => expect($('#projects').children.length).toBeGreaterThan(0));
+const createProject = async (name) => { $('#project-input').value = name; $('#project-form').requestSubmit(); await wait(); };
+const createTask = async (title, deadline = '') => {
+  $('#task-input').value = title; $('#task-deadline').value = deadline; $('#task-form').requestSubmit();
+  await vi.waitFor(() => expect($$('#tasks .title').length).toBeGreaterThan(0));
 };
-const addProject = (v) => submit('#project-form', '#project-input', v);
-const addTask = (v) => submit('#task-form', '#task-input', v);
-const titles = () => $$('#tasks .title').map((e) => e.textContent);
-const ready = () => vi.waitFor(() => expect($('#task-form').hidden).toBe(false));
 
 beforeEach(async () => {
   document.body.innerHTML = '<div id="app"></div>';
   root = document.getElementById('app');
-  db = createDB('ui-db-' + n++);
-  await initApp(root, db);
+  const repository = createDB(`ui-${count++}`);
+  let id = 0;
+  service = createTodoService({ repository, clock: () => new Date('2032-01-01T00:00:00Z'), idGenerator: () => `id-${++id}` });
+  await initApp(root, service);
 });
 
-describe('Interface', () => {
-  it('cache le formulaire de tâche sans projet', () => {
-    expect($('#task-form').hidden).toBe(true);
+describe('interface accessible et métier', () => {
+  it('explique visuellement le trajet des actions sans modifier les données', async () => {
+    expect($('#mechanism-title').textContent).toBe('Voir le mécanisme');
+    expect($('#mechanism-steps').textContent).toContain('IndexedDB');
+    root.querySelector('[data-flow="task"]').click();
+    expect($('#mechanism-steps').textContent).toContain('validateTitle()');
+    expect(root.querySelector('[data-flow="task"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await service.getProjects()).toEqual([]);
   });
-  it('ajoute un projet et le sélectionne', async () => {
-    addProject('Maison');
-    await vi.waitFor(() => expect($$('#projects li')).toHaveLength(1));
-    expect($('#projects li').classList.contains('active')).toBe(true);
-    await ready();
+  it('ne permet pas de créer une tâche sans projet', () => expect($('#task-form').hidden).toBe(true));
+  it('crée un projet et refuse les doublons sans tenir compte de la casse', async () => {
+    await createProject('Maison');
+    $('#project-input').value = 'maison'; $('#project-form').requestSubmit();
+    await vi.waitFor(() => expect($('#project-error').hidden).toBe(false));
+    expect($$('#projects .select-project')).toHaveLength(1);
   });
-  it('ignore les projets vides ou composés d’espaces', async () => {
-    addProject('   ');
-    await Promise.resolve();
-    expect($$('#projects li')).toHaveLength(0);
+  it('ajoute une tâche, son échéance et affiche compteurs et progression', async () => {
+    await createProject('Maison');
+    await createTask('Ménage', '2032-01-15');
+    expect($('.deadline').dateTime).toBe('2032-01-15');
+    expect($('#task-count').textContent).toBe('1 à faire sur 1');
+    $('.toggle').click();
+    await vi.waitFor(() => expect($('#progress-percent').textContent).toBe('100 %'));
+    expect($('#task-count').textContent).toBe('0 à faire sur 1');
   });
-  it('ajoute une tâche au projet courant', async () => {
-    addProject('Maison'); await ready();
-    addTask('Ménage');
-    await vi.waitFor(() => expect(titles()).toEqual(['Ménage']));
-    expect(await db.getTasks((await db.getProjects())[0].id)).toHaveLength(1);
+  it('annule une modification sans changer les données', async () => {
+    await createProject('Maison'); await createTask('Lire');
+    const before = await service.getTasks();
+    $('.edit').click(); $('.edit-input').value = 'Changé'; $('.cancel-edit').click();
+    await vi.waitFor(() => expect($$('#tasks .title').map((item) => item.textContent)).toEqual(['Lire']));
+    expect(await service.getTasks()).toEqual(before);
   });
-  it('ignore les tâches vides ou composées d’espaces', async () => {
-    addProject('Maison'); await ready();
-    addTask('   ');
-    await Promise.resolve();
-    expect(titles()).toEqual([]);
-  });
-  it('modifie une tâche', async () => {
-    addProject('P'); await ready();
-    addTask('ancien'); await vi.waitFor(() => expect(titles()).toEqual(['ancien']));
-    $('.edit').click();
-    $('.edit-input').value = 'nouveau';
-    $('.save').click();
-    await vi.waitFor(() => expect(titles()).toEqual(['nouveau']));
-  });
-  it('ne remplace pas une tâche par un titre vide', async () => {
-    addProject('P'); await ready();
-    addTask('titre conservé'); await vi.waitFor(() => expect(titles()).toEqual(['titre conservé']));
-    $('.edit').click();
-    $('.edit-input').value = '   ';
-    $('.save').click();
-    await vi.waitFor(() => expect(titles()).toEqual(['titre conservé']));
-  });
-  it('coche une tâche comme terminée', async () => {
-    addProject('P'); await ready();
-    addTask('x'); await vi.waitFor(() => expect(titles()).toHaveLength(1));
-    const cb = $('.toggle'); cb.checked = true; cb.dispatchEvent(new Event('change'));
-    await vi.waitFor(() => expect($('#tasks li').classList.contains('done')).toBe(true));
-  });
-  it('supprime une tâche', async () => {
-    addProject('P'); await ready();
-    addTask('x'); await vi.waitFor(() => expect(titles()).toHaveLength(1));
-    $('.delete-task').click();
-    await vi.waitFor(() => expect(titles()).toHaveLength(0));
-  });
-  it('affiche uniquement les tâches du projet sélectionné', async () => {
-    addProject('A'); await ready();
-    addTask('tâche A'); await vi.waitFor(() => expect(titles()).toEqual(['tâche A']));
-    addProject('B'); await vi.waitFor(() => expect($$('#projects li')).toHaveLength(2));
-    await vi.waitFor(() => expect(titles()).toEqual([]));
+  it('modifie le titre, la date et déplace une tâche entre projets', async () => {
+    await createProject('Maison'); await createTask('Lire');
+    const [home] = await service.getProjects();
+    await createProject('Travail');
+    await vi.waitFor(() => expect($$('.select-project')).toHaveLength(2));
+    const projects = await service.getProjects();
+    const work = projects.find((project) => project.name === 'Travail');
     $$('.select-project')[0].click();
-    await vi.waitFor(() => expect(titles()).toEqual(['tâche A']));
+    await vi.waitFor(() => expect($('.edit')).toBeTruthy());
+    $('.edit').click(); $('.edit-input').value = 'Lire demain'; $('.edit-deadline').value = '2032-02-29';
+    $('.edit-project').value = work.id; $('.save').click();
+    await vi.waitFor(async () => expect(await service.getTasks(home.id)).toEqual([]));
+    expect(await service.getTasks(home.id)).toEqual([]);
+    expect(await service.getTasks(work.id)).toMatchObject([{ title: 'Lire demain', deadline: '2032-02-29', projectId: work.id }]);
   });
-  it('supprime un projet', async () => {
-    addProject('A'); await vi.waitFor(() => expect($$('#projects li')).toHaveLength(1));
+  it('persiste les données après initialisation à nouveau', async () => {
+    await createProject('Durable'); await createTask('Persistée');
+    root.innerHTML = '';
+    await initApp(root, service);
+    expect($$('#tasks .title').map((item) => item.textContent)).toEqual(['Persistée']);
+  });
+  it('supprime une tâche et un projet avec ses tâches', async () => {
+    await createProject('À supprimer'); await createTask('Tâche temporaire');
+    $('.delete-task').click();
+    await vi.waitFor(() => expect($$('#tasks .title')).toHaveLength(0));
+    await createTask('Tâche en cascade');
     $('.delete-project').click();
-    await vi.waitFor(() => expect($$('#projects li')).toHaveLength(0));
-  });
-  it("recharge les données au redémarrage de l'app", async () => {
-    addProject('Durable'); await ready();
-    addTask('persistée'); await vi.waitFor(() => expect(titles()).toHaveLength(1));
-    document.body.innerHTML = '<div id="app"></div>';
-    root = document.getElementById('app');
-    await initApp(root, db);
-    expect(titles()).toEqual(['persistée']);
+    await vi.waitFor(() => expect($$('.project-item')).toHaveLength(0));
+    expect(await service.getTasks()).toEqual([]);
   });
 });

@@ -2,10 +2,14 @@ const requestResult = (request) => new Promise((resolve, reject) => {
   request.onsuccess = () => resolve(request.result);
   request.onerror = () => reject(request.error);
 });
-const transactionDone = (transaction) => new Promise((resolve, reject) => {
-  transaction.oncomplete = () => resolve();
-  transaction.onabort = transaction.onerror = () => reject(transaction.error ?? new Error('Transaction IndexedDB annulée.'));
-});
+const transactionDone = (transaction) => {
+  const finished = new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = transaction.onerror = () => reject(transaction.error ?? new Error('Transaction IndexedDB annulée.'));
+  });
+  finished.catch(() => {});
+  return finished;
+};
 
 export function createDB(name = 'todo-db') {
   const open = new Promise((resolve, reject) => {
@@ -32,7 +36,7 @@ export function createDB(name = 'todo-db') {
     async updateProject(id, changes) {
       const tx = await transaction('projects', 'readwrite'); const finished = transactionDone(tx); const store = tx.objectStore('projects');
       const current = await requestResult(store.get(id));
-      if (!current) { tx.abort(); throw new Error('Projet introuvable.'); }
+      if (!current) { tx.abort(); await finished.catch(() => {}); throw new Error('Projet introuvable.'); }
       store.put({ ...current, ...changes, id }); await finished;
     },
     async deleteProject(id) {
@@ -49,16 +53,16 @@ export function createDB(name = 'todo-db') {
     async insertTask(task) {
       const tx = await transaction(['projects', 'tasks'], 'readwrite'); const finished = transactionDone(tx);
       const project = await requestResult(tx.objectStore('projects').get(task.projectId));
-      if (!project) { tx.abort(); throw new Error('Projet introuvable.'); }
+      if (!project) { tx.abort(); await finished.catch(() => {}); throw new Error('Projet introuvable.'); }
       const result = await requestResult(tx.objectStore('tasks').add(task)); await finished; return result;
     },
     async updateTask(id, changes) {
       const tx = await transaction(['projects', 'tasks'], 'readwrite'); const finished = transactionDone(tx); const tasks = tx.objectStore('tasks');
       const current = await requestResult(tasks.get(id));
-      if (!current) { tx.abort(); throw new Error('Tâche introuvable.'); }
+      if (!current) { tx.abort(); await finished.catch(() => {}); throw new Error('Tâche introuvable.'); }
       const projectId = changes.projectId ?? current.projectId;
       const project = await requestResult(tx.objectStore('projects').get(projectId));
-      if (!project) { tx.abort(); throw new Error('Projet introuvable.'); }
+      if (!project) { tx.abort(); await finished.catch(() => {}); throw new Error('Projet introuvable.'); }
       tasks.put({ ...current, ...changes, id }); await finished;
     },
     async deleteTask(id) {

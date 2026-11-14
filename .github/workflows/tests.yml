@@ -1,13 +1,82 @@
-name: Tests
+name: Tests TDD et BDD
 on:
   push:
   pull_request:
+  schedule:
+    - cron: '0 3 * * *'
+permissions:
+  contents: read
+  actions: read
 jobs:
-  test:
+  tdd:
+    name: TDD Vitest + couverture
+    runs-on: ubuntu-latest
+    outputs:
+      mutation: ${{ steps.mutation-schedule.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:tdd
+      - name: Déterminer le lancement nocturne de mutation
+        id: mutation-schedule
+        shell: bash
+        run: echo "run=${{ github.event_name == 'schedule' }}" >> "$GITHUB_OUTPUT"
+      - name: Publier rapports TDD et couverture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-tdd
+          path: |
+            coverage/
+            reports/
+          if-no-files-found: ignore
+          retention-days: 14
+  bdd:
+    name: BDD Cucumber + Playwright Chrome
+    needs: tdd
+    if: always() && needs.tdd.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with:
+          node-version: 22
+          cache: npm
       - run: npm ci
-      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:bdd
+      - name: Publier rapport BDD
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-bdd
+          path: |
+            reports/cucumber.html
+            reports/
+          if-no-files-found: ignore
+          retention-days: 14
+  mutation:
+    name: Mutation Stryker (nuit uniquement)
+    needs: tdd
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:mutation
+      - name: Publier rapport Stryker
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-mutation
+          path: reports/mutation/
+          if-no-files-found: ignore
+          retention-days: 14
