@@ -1,7 +1,7 @@
 export async function initApp(root, service) {
   let currentProjectId = null;
   root.innerHTML = `
-    <header class="topbar"><div><p class="eyebrow">ESPACE PERSONNEL</p><h1>Mes tâches</h1></div><span class="storage-badge">Enregistré sur cet appareil</span></header>
+    <header class="topbar"><div><p class="eyebrow">ESPACE PERSONNEL</p><h1>Mes tâches</h1></div><div class="topbar-actions"><a class="mechanism-shortcut" href="#mechanism-panel">Comment ça marche ? <span aria-hidden="true">↓</span></a><span class="storage-badge">Enregistré sur cet appareil</span></div></header>
     <section class="panel project-panel" aria-labelledby="projects-heading">
       <div class="section-heading"><div><p class="eyebrow">ORGANISATION</p><h2 id="projects-heading">Projets</h2></div></div>
       <form id="project-form" class="inline-form"><label class="sr-only" for="project-input">Nom du projet</label><input id="project-input" type="text" placeholder="Ex. Personnel" required maxlength="60"><button class="primary">Créer le projet</button></form>
@@ -16,7 +16,7 @@ export async function initApp(root, service) {
       <div id="progress-panel" class="progress-panel" hidden><div class="progress-copy"><span id="task-count">0 à faire sur 0</span><strong id="progress-percent">0 %</strong></div><div class="progress-track" role="progressbar" aria-label="Progression des tâches" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progress-fill"></span></div></div>
       <ul id="tasks" class="task-list"></ul><p id="empty-state" class="empty-state" hidden>Aucune tâche pour le moment. Ajoutez la première ci-dessus.</p>
     </section>
-    <section class="panel mechanism-panel" aria-labelledby="mechanism-title">
+    <section id="mechanism-panel" class="panel mechanism-panel" aria-labelledby="mechanism-title">
       <div class="section-heading"><div><p class="eyebrow">COULISSES</p><h2 id="mechanism-title">Voir le mécanisme</h2></div></div>
       <p class="mechanism-intro">Choisissez une action pour suivre son trajet dans l’application. Ce schéma explique le code ; il ne modifie pas vos données.</p>
       <div class="mechanism-actions" role="group" aria-label="Choisir une action à expliquer">

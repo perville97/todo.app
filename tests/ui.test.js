@@ -26,6 +26,8 @@ beforeEach(async () => {
 describe('interface accessible et métier', () => {
   it('explique visuellement le trajet des actions sans modifier les données', async () => {
     expect($('#mechanism-title').textContent).toBe('Voir le mécanisme');
+    expect(root.querySelector('.mechanism-shortcut').getAttribute('href')).toBe('#mechanism-panel');
+    expect($('#mechanism-panel')).toBeTruthy();
     expect($('#mechanism-steps').textContent).toContain('IndexedDB');
     root.querySelector('[data-flow="task"]').click();
     expect($('#mechanism-steps').textContent).toContain('validateTitle()');
