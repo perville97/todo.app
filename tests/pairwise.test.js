@@ -23,4 +23,14 @@ describe('générateur pairwise', () => {
     expect(() => generatePairwise({ titre: ['ok'], date: [] })).toThrow();
     expect(() => generatePairwise({ titre: ['ok'] })).toThrow();
   });
+  it('couvre correctement davantage de facteurs pour les oracles métier', () => {
+    const extended = {
+      oracle: ['reflexif', 'homothétie', 'métamorphique', 'mutant'],
+      forme: ['uneTerminée', 'majoritéTerminée', 'toutesTerminées'],
+      multiplicateur: [2, 3],
+      ordre: ['normal', 'inversé'],
+      déplacement: ['oui', 'non'],
+    };
+    expect(() => assertPairwiseComplete(generatePairwise(extended), extended)).not.toThrow();
+  });
 });
