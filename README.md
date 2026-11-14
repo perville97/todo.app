@@ -2,14 +2,46 @@
 
 Gestion de projets et tâches (titre, échéance, déplacement, annulation d’édition, achèvement et progression), sauvegardée dans IndexedDB.
 
-## Installation et commandes
+## Installation et commandes (ordre d’exécution)
 
-    npm ci              # installe les dépendances et active .githooks/pre-push
-    npm start           # sert l’application
-    npm run test:tdd    # Vitest, contrats, oracles pairwise et couverture
-    npm run test:bdd    # Cucumber en français + Playwright/Chrome
-    npm test            # TDD puis BDD
-    npm run test:mutation # Stryker (exécuté automatiquement uniquement la nuit en CI)
+Depuis un terminal ouvert à la racine du dépôt :
+
+1. Installer les dépendances et activer le hook Git pre-push :
+
+    npm ci
+
+2. Une seule fois par machine, installer Chromium pour les tests BDD :
+
+    npx playwright install chromium
+
+3. Lancer tous les tests avant de démarrer ou publier l’application :
+
+    npm test
+
+   `npm test` lance d’abord Vitest avec couverture, puis les scénarios BDD Cucumber + Playwright/Chrome. Résultat vert = les deux commandes réussissent.
+
+4. Démarrer l’application dans un terminal dédié :
+
+    npm start
+
+   Ouvrir `http://localhost:3000` sur cet ordinateur. Pour un autre appareil du même réseau Wi-Fi, trouver l’adresse avec `hostname -I`, puis ouvrir `http://ADRESSE_IP:3000` (par exemple `http://192.168.1.25:3000`). Le pare-feu doit autoriser le port 3000.
+
+5. Après des changements, vérifier puis enregistrer le travail :
+
+    npm test
+    git add .
+    git commit -m "Décrire le changement"
+    git push
+
+   Au `git push`, le hook `.githooks/pre-push` relance Vitest puis BDD : un échec bloque l’envoi. Un `git commit` seul ne déclenche pas le hook. GitHub Actions rejoue aussi les tests après réception du push et sur les pull requests.
+
+Commandes de test séparées si besoin :
+
+    npm run test:tdd       # Vitest, contrats, oracles pairwise et couverture
+    npm run test:bdd       # Cucumber en français + Playwright/Chrome
+    npm run test:mutation  # Stryker ; en CI, uniquement la nuit
+
+Dans ton dépôt actuel, `origin` et le suivi de la branche `main` sont déjà configurés : ne refais pas `git remote add`. Pour une copie neuve clonée depuis GitHub, le remote est ajouté automatiquement par `git clone`.
 
 Le générateur pairwise déterministe vérifie explicitement la complétude du jeu de données. Tous les cas de validation du service et les oracles associés sont générés par ce jeu. Les tests de contrat sont exécutés contre le fake mémoire et le dépôt IndexedDB (fake-indexeddb).
 
