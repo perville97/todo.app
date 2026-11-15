@@ -39,7 +39,10 @@ Commandes de test séparées si besoin :
 
     npm run test:tdd       # Vitest, contrats, oracles pairwise et couverture
     npm run test:bdd       # Cucumber en français + Playwright/Chrome
+    npm run test:bdd:headed # mêmes parcours, Chrome visible et ralenti pour la démonstration
     npm run test:mutation  # Stryker ; en CI, uniquement la nuit
+
+Pour montrer le test à l’enseignant, lance `npm run test:bdd:headed` dans un terminal graphique : Chrome s’ouvre et Playwright saisit les données/clique automatiquement. Les tests restent automatisés ; ne remplis pas les champs à la main. Le mode normal `npm run test:bdd` reste invisible et convient au hook Git/CI. Sur un serveur sans écran graphique, utilise le mode normal.
 
 Dans ton dépôt actuel, `origin` et le suivi de la branche `main` sont déjà configurés : ne refais pas `git remote add`. Pour une copie neuve clonée depuis GitHub, le remote est ajouté automatiquement par `git clone`.
 

@@ -45,8 +45,10 @@ BeforeAll(async () => {
   });
   await new Promise((resolveListen) => server.listen(0, '127.0.0.1', resolveListen));
   origin = `http://127.0.0.1:${server.address().port}`;
+  const headless = process.env.PLAYWRIGHT_HEADLESS !== 'false';
   browser = await chromium.launch({
-    headless: true,
+    headless,
+    slowMo: headless ? 0 : Number(process.env.PLAYWRIGHT_SLOW_MO ?? 400),
     executablePath: process.env.CHROMIUM_PATH || undefined,
     args: ['--no-sandbox', '--disable-dev-shm-usage'],
   });

@@ -7,6 +7,7 @@
     "test": "npm run test:tdd && npm run test:bdd",
     "test:tdd": "node tests/run-tdd.js",
     "test:bdd": "node tests/run-bdd.js",
+    "test:bdd:headed": "node tests/run-bdd.js --headed",
     "test:bdd:mutation-check": "node tests/bdd/verify-negative-control.js",
     "test:mutation": "node tests/run-mutation.js",
     "test:summary": "node scripts/build-test-summary.js",
