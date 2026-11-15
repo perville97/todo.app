@@ -16,6 +16,35 @@ export async function initApp(root, service) {
       <div id="progress-panel" class="progress-panel" hidden><div class="progress-copy"><span id="task-count">0 à faire sur 0</span><strong id="progress-percent">0 %</strong></div><div class="progress-track" role="progressbar" aria-label="Progression des tâches" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progress-fill"></span></div></div>
       <ul id="tasks" class="task-list"></ul><p id="empty-state" class="empty-state" hidden>Aucune tâche pour le moment. Ajoutez la première ci-dessus.</p>
     </section>
+    <section id="test-results-panel" class="panel test-results-panel" aria-labelledby="test-results-title">
+      <div class="section-heading"><div><p class="eyebrow">QUALITÉ DU PROJET</p><h2 id="test-results-title">Résultats des tests</h2></div><button id="refresh-test-results" type="button" class="secondary">Actualiser</button></div>
+      <p id="test-results-updated" class="test-results-updated" aria-live="polite">Lecture du dernier rapport…</p>
+      <div id="test-results-error" class="error" role="status" hidden></div>
+      <div class="test-result-grid">
+        <article class="test-result-card" aria-labelledby="tdd-result-title">
+          <div class="test-result-heading"><h3 id="tdd-result-title">Tests unitaires (TDD)</h3><span id="tdd-result-status" class="result-badge">—</span></div>
+          <strong id="tdd-result-count" class="test-result-value">—</strong><span class="test-result-caption">tests réussis / total</span>
+          <div class="metric-bars">
+            <label>Lignes <span id="coverage-lines-label">—</span><span class="metric-track"><i id="coverage-lines-bar"></i></span></label>
+            <label>Branches <span id="coverage-branches-label">—</span><span class="metric-track"><i id="coverage-branches-bar"></i></span></label>
+            <label>Fonctions <span id="coverage-functions-label">—</span><span class="metric-track"><i id="coverage-functions-bar"></i></span></label>
+          </div>
+        </article>
+        <article class="test-result-card" aria-labelledby="bdd-result-title">
+          <div class="test-result-heading"><h3 id="bdd-result-title">Tests navigateur (BDD)</h3><span id="bdd-result-status" class="result-badge">—</span></div>
+          <strong id="bdd-result-count" class="test-result-value">—</strong><span class="test-result-caption">scénarios réussis / total</span>
+          <p id="bdd-result-steps" class="test-result-detail">Étapes réussies : —</p>
+          <p class="test-result-detail">Cucumber + Playwright dans Chrome</p>
+        </article>
+        <article class="test-result-card" aria-labelledby="mutation-result-title">
+          <div class="test-result-heading"><h3 id="mutation-result-title">Tests de mutation (Stryker)</h3><span id="mutation-result-status" class="result-badge">—</span></div>
+          <strong id="mutation-result-score" class="test-result-value">—</strong><span class="test-result-caption">score de mutation</span>
+          <p id="mutation-result-count" class="test-result-detail">Mutants tués / total : —</p>
+          <p id="mutation-result-survivors" class="test-result-detail">Survivants : —</p>
+        </article>
+      </div>
+      <p class="test-results-note">Couverture : part du code exécutée par les tests. Score de mutation : proportion des modifications artificielles détectées. Les mutations s’exécutent la nuit en CI ; la date du rapport indique quand le dernier résultat a été calculé.</p>
+    </section>
     <section id="mechanism-panel" class="panel mechanism-panel" aria-labelledby="mechanism-title">
       <div class="section-heading"><div><p class="eyebrow">COULISSES</p><h2 id="mechanism-title">Voir le mécanisme</h2></div></div>
       <p class="mechanism-intro">Choisissez une action pour suivre son trajet dans l’application. Ce schéma explique le code ; il ne modifie pas vos données.</p>
@@ -88,6 +117,65 @@ export async function initApp(root, service) {
     button.addEventListener('click', () => showFlow(button.dataset.flow));
   });
   showFlow('project');
+
+  const setStatus = (selector, status) => {
+    const badge = $(selector);
+    badge.textContent = status ?? 'indisponible';
+    badge.classList.toggle('result-badge-success', status === 'réussi' || status === 'terminé');
+    badge.classList.toggle('result-badge-failure', status === 'échoué' || status === 'à examiner');
+  };
+  const setPercent = (labelSelector, barSelector, value) => {
+    const label = $(labelSelector);
+    const bar = $(barSelector);
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      label.textContent = '—';
+      bar.style.width = '0%';
+      return;
+    }
+    const bounded = Math.max(0, Math.min(100, value));
+    label.textContent = `${bounded.toFixed(1)} %`;
+    bar.style.width = `${bounded}%`;
+    bar.setAttribute('aria-valuenow', String(bounded));
+  };
+  async function loadTestResults() {
+    const refresh = $('#refresh-test-results');
+    refresh.disabled = true;
+    $('#test-results-error').hidden = true;
+    try {
+      const reportUrl = new URL('../test-results.json', import.meta.url);
+      reportUrl.searchParams.set('updated', String(Date.now()));
+      const response = await fetch(reportUrl, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Rapport absent. Lance npm test pour le générer.');
+      const results = await response.json();
+      const { tdd, bdd, mutation } = results;
+      setStatus('#tdd-result-status', tdd?.status);
+      $('#tdd-result-count').textContent = tdd?.total == null ? '—' : `${tdd.passed ?? 0} / ${tdd.total}`;
+      setPercent('#coverage-lines-label', '#coverage-lines-bar', tdd?.coverage?.lines);
+      setPercent('#coverage-branches-label', '#coverage-branches-bar', tdd?.coverage?.branches);
+      setPercent('#coverage-functions-label', '#coverage-functions-bar', tdd?.coverage?.functions);
+
+      setStatus('#bdd-result-status', bdd?.status);
+      $('#bdd-result-count').textContent = bdd?.scenarios?.total == null ? '—' : `${bdd.scenarios.passed ?? 0} / ${bdd.scenarios.total}`;
+      $('#bdd-result-steps').textContent = `Étapes réussies : ${bdd?.steps?.passed ?? '—'} / ${bdd?.steps?.total ?? '—'}`;
+
+      setStatus('#mutation-result-status', mutation?.status);
+      $('#mutation-result-score').textContent = typeof mutation?.score === 'number' ? `${mutation.score.toFixed(2)} %` : '—';
+      $('#mutation-result-count').textContent = `Mutants tués / total : ${mutation?.killed ?? 0} / ${mutation?.total ?? 0}`;
+      $('#mutation-result-survivors').textContent = `Survivants : ${mutation?.survived ?? 0} · non couverts : ${mutation?.noCoverage ?? 0}`;
+
+      const dates = [tdd?.reportUpdatedAt, bdd?.reportUpdatedAt, mutation?.reportUpdatedAt].filter(Boolean).map((value) => new Date(value));
+      const latest = dates.length ? new Date(Math.max(...dates.map((date) => date.getTime()))) : new Date(results.updatedAt);
+      $('#test-results-updated').textContent = `Rapports locaux · dernière mise à jour : ${new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(latest)}`;
+    } catch (error) {
+      $('#test-results-updated').textContent = 'Résultats non chargés';
+      $('#test-results-error').textContent = `${error.message} Les rapports se mettent à jour après npm test et npm run test:mutation.`;
+      $('#test-results-error').hidden = false;
+    } finally {
+      refresh.disabled = false;
+    }
+  }
+  $('#refresh-test-results').addEventListener('click', loadTestResults);
+  await loadTestResults();
 
   function projectOption(project, selectedId) {
     return Object.assign(document.createElement('option'), { value: project.id, textContent: project.name, selected: project.id === selectedId });

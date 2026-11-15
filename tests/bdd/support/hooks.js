@@ -64,4 +64,7 @@ After(async function () {
 AfterAll(async () => {
   await browser?.close();
   if (server?.listening) await new Promise((resolveClose) => server.close(resolveClose));
+  if (process.env.TEST_BDD_EXIT !== undefined) {
+    process.exitCode = Number(process.env.TEST_BDD_EXIT) === 0 ? 0 : 1;
+  }
 });

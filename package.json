@@ -5,10 +5,11 @@
   "scripts": {
     "start": "npx serve .",
     "test": "npm run test:tdd && npm run test:bdd",
-    "test:tdd": "vitest run --coverage",
-    "test:bdd": "cucumber-js --import tests/bdd/support/**/*.js --import tests/bdd/steps/**/*.js tests/bdd/features/**/*.feature --format progress --format html:reports/cucumber.html",
+    "test:tdd": "node tests/run-tdd.js",
+    "test:bdd": "node tests/run-bdd.js",
     "test:bdd:mutation-check": "node tests/bdd/verify-negative-control.js",
-    "test:mutation": "stryker run",
+    "test:mutation": "node tests/run-mutation.js",
+    "test:summary": "node scripts/build-test-summary.js",
     "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {

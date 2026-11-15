@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDB } from '../src/db.js';
 import { createTodoService } from '../src/service.js';
 import { initApp } from '../src/app.js';
@@ -14,14 +14,24 @@ const createTask = async (title, deadline = '') => {
   await vi.waitFor(() => expect($$('#tasks .title').length).toBeGreaterThan(0));
 };
 
+const testResultsFixture = {
+  updatedAt: '2026-11-15T12:00:00.000Z',
+  tdd: { status: 'réussi', total: 286, passed: 286, failed: 0, coverage: { lines: 99.3, branches: 90.38, functions: 93.75 } },
+  bdd: { status: 'réussi', scenarios: { total: 7, passed: 7, failed: 0 }, steps: { total: 70, passed: 70, failed: 0 } },
+  mutation: { status: 'terminé', score: 80.34, killed: 143, total: 178, survived: 28, noCoverage: 7 },
+};
+
 beforeEach(async () => {
   document.body.innerHTML = '<div id="app"></div>';
   root = document.getElementById('app');
+  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => testResultsFixture })));
   const repository = createDB(`ui-${count++}`);
   let id = 0;
   service = createTodoService({ repository, clock: () => new Date('2032-01-01T00:00:00Z'), idGenerator: () => `id-${++id}` });
   await initApp(root, service);
 });
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe('interface accessible et métier', () => {
   it('explique visuellement le trajet des actions sans modifier les données', async () => {
@@ -33,6 +43,16 @@ describe('interface accessible et métier', () => {
     expect($('#mechanism-steps').textContent).toContain('validateTitle()');
     expect(root.querySelector('[data-flow="task"]').getAttribute('aria-pressed')).toBe('true');
     expect(await service.getProjects()).toEqual([]);
+  });
+  it('affiche les résultats et les pourcentages TDD, BDD et mutation', async () => {
+    expect($('#tdd-result-status').textContent).toBe('réussi');
+    expect($('#tdd-result-count').textContent).toBe('286 / 286');
+    expect($('#coverage-lines-label').textContent).toBe('99.3 %');
+    expect($('#coverage-lines-bar').style.width).toBe('99.3%');
+    expect($('#bdd-result-count').textContent).toBe('7 / 7');
+    expect($('#bdd-result-steps').textContent).toContain('70 / 70');
+    expect($('#mutation-result-score').textContent).toBe('80.34 %');
+    expect($('#mutation-result-count').textContent).toContain('143 / 178');
   });
   it('ne permet pas de créer une tâche sans projet', () => expect($('#task-form').hidden).toBe(true));
   it('crée un projet et refuse les doublons sans tenir compte de la casse', async () => {

@@ -48,3 +48,15 @@ Then('le projet {string} est affiché', async function (name) { await expect(thi
 Then('le compteur affiche {string}', async function (text) { await expect(this.page.locator('#task-count')).toHaveText(text); });
 Then('la progression affiche {string}', async function (text) { await expect(this.page.locator('#progress-percent')).toHaveText(text); });
 Then('l’échéance de la tâche est {string}', async function (deadline) { await expect(this.page.locator('.task-item time')).toHaveAttribute('datetime', deadline); });
+Then('le tableau des résultats des tests est affiché', async function () {
+  await expect(this.page.locator('#test-results-panel')).toBeVisible();
+  await expect(this.page.locator('.test-result-card')).toHaveCount(3);
+});
+Then('les tests TDD sont indiqués comme réussis', async function () {
+  await expect(this.page.locator('#tdd-result-status')).toHaveText('réussi');
+  await expect(this.page.locator('#tdd-result-count')).toContainText('/');
+});
+Then('le pourcentage de couverture des lignes est visible', async function () {
+  await expect(this.page.locator('#coverage-lines-label')).toContainText('%');
+  await expect(this.page.locator('#coverage-lines-bar')).not.toHaveCSS('width', '0px');
+});

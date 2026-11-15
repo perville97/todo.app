@@ -61,6 +61,12 @@ Le bloc **Et les tests au push ?** explique le hook : `git push` → `.githooks/
 
 Dans Chrome, **F12 → Application → IndexedDB → todo-db** permet d’inspecter les stores `projects` et `tasks`. Le rapport de couverture s’ouvre via [coverage/index.html](coverage/index.html), et le rapport BDD via [reports/cucumber.html](reports/cucumber.html).
 
+## Résultats et pourcentages dans l’interface
+
+Le panneau **Résultats des tests**, sous les tâches, lit `test-results.json` et affiche les comptes TDD/BDD, les pourcentages de couverture (lignes, branches, fonctions) et le score Stryker, avec le nombre de mutants tués, survivants et non couverts. Après `npm test` ou `npm run test:mutation`, les scripts reconstruisent le résumé et le bouton **Actualiser** recharge les mesures.
+
+Les tests de mutation ne tournent pas à chaque push : GitHub Actions les lance à l’horaire nocturne du workflow. Pour actualiser localement cette partie, lancer `npm run test:mutation` (cela prend plusieurs minutes). Les rapports complets sont dans `reports/mutation/`; GitHub Actions publie également les rapports JSON/HTML comme artifacts téléchargeables dans l’exécution du workflow.
+
 ## Historique TDD et hooks
 
 Chaque cycle TDD (spécification rouge puis implémentation verte) est enregistré dans l’historique Git. Le hook versionné `.githooks/pre-push`, installé par `npm install`/`npm ci`, exécute d’abord TDD puis BDD et bloque le push si l’un échoue. GitHub Actions répète les tests à chaque push et pull request, publie les rapports même en cas d’échec et réserve Stryker à l’exécution nocturne.

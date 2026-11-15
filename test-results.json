@@ -1,0 +1,44 @@
+{
+  "updatedAt": "2026-11-15T09:30:39.260Z",
+  "tdd": {
+    "status": "réussi",
+    "total": 287,
+    "passed": 287,
+    "failed": 0,
+    "coverage": {
+      "statements": 94.33,
+      "branches": 90.38,
+      "functions": 93.75,
+      "lines": 99.3
+    },
+    "reportUpdatedAt": "2026-11-15T09:30:29.079Z"
+  },
+  "bdd": {
+    "status": "réussi",
+    "scenarios": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    "steps": {
+      "total": 76,
+      "passed": 76,
+      "failed": 0,
+      "skipped": 0
+    },
+    "reportUpdatedAt": "2026-11-15T09:30:38.959Z"
+  },
+  "mutation": {
+    "status": "terminé",
+    "score": 93.53,
+    "killed": 188,
+    "survived": 13,
+    "noCoverage": 0,
+    "timedOut": 0,
+    "errors": 0,
+    "total": 201,
+    "reportUpdatedAt": "2026-11-15T09:28:18.411Z"
+  },
+  "explanation": "Couverture = lignes/instructions/branches/fonctions exécutées. Score mutation = mutants tués ÷ mutants totaux. Un survivant correspond à un défaut que les tests n’ont pas détecté."
+}
